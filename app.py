@@ -20,10 +20,16 @@ def register():
         # Get form data
         email = request.form.get('email')
         password = request.form.get('password')
+        confirm_password = request.form.get('confirm_password')
         user_type = request.form.get('user_type')
         name = request.form.get('name')
         address = request.form.get('address')
         phone = request.form.get('phone')
+        
+        # Validate passwords match
+        if password != confirm_password:
+            flash('Passwords do not match!', 'error')
+            return redirect(url_for('register'))
         
         # Hash password
         password_hash = generate_password_hash(password)
@@ -101,22 +107,128 @@ def logout():
     flash('You have been logged out', 'info')
     return redirect(url_for('index'))
 
+@app.route('/profile', methods=['GET', 'POST'])
+def profile():
+    if 'user_id' not in session:
+        flash('Please login first', 'error')
+        return redirect(url_for('login'))
+    
+    db = get_db()
+    cursor = db.cursor(dictionary=True)
+    
+    if request.method == 'POST':
+        # Update user information
+        name = request.form.get('name')
+        address = request.form.get('address')
+        phone = request.form.get('phone')
+        
+        cursor.execute('''
+            UPDATE users 
+            SET name = %s, address = %s, phone = %s
+            WHERE user_id = %s
+        ''', (name, address, phone, session['user_id']))
+        
+        # Update payment info if customer or donner
+        if session['user_type'] in ['customer', 'donner']:
+            card_holder = request.form.get('card_holder')
+            card_number = request.form.get('card_number')
+            expiry_date = request.form.get('expiry_date')
+            cvv = request.form.get('cvv')
+            
+            cursor.execute('''
+                UPDATE payment_info 
+                SET card_holder = %s, card_number = %s, expiry_date = %s, cvv = %s
+                WHERE user_id = %s
+            ''', (card_holder, card_number, expiry_date, cvv, session['user_id']))
+        
+        db.commit()
+        session['name'] = name
+        flash('Profile updated successfully!', 'success')
+        return redirect(url_for('profile'))
+    
+    # Get user data
+    cursor.execute('SELECT * FROM users WHERE user_id = %s', (session['user_id'],))
+    user = cursor.fetchone()
+    
+    # Get payment info if customer or donner
+    payment_info = None
+    if session['user_type'] in ['customer', 'donner']:
+        cursor.execute('SELECT * FROM payment_info WHERE user_id = %s', (session['user_id'],))
+        payment_info = cursor.fetchone()
+    
+    cursor.close()
+    
+    return render_template('profile.html', user=user, payment_info=payment_info)
+
 @app.route('/restaurant/dashboard')
 def restaurant_dashboard():
     if 'user_id' not in session or session.get('user_type') != 'restaurant':
         flash('Please login as a restaurant', 'error')
         return redirect(url_for('login'))
     
-    return render_template('restaurant/dashboard.html')
+    db = get_db()
+    cursor = db.cursor(dictionary=True)
+    
+    # Get restaurant's plates
+    cursor.execute('''
+        SELECT * FROM plates 
+        WHERE restaurant_id = %s 
+        ORDER BY created_at DESC
+    ''', (session['user_id'],))
+    plates = cursor.fetchall()
+    cursor.close()
+    
+    return render_template('restaurant/dashboard.html', plates=plates)
 
-# Placeholder routes for other dashboards
+@app.route('/restaurant/create-listing', methods=['GET', 'POST'])
+def create_listing():
+    if 'user_id' not in session or session.get('user_type') != 'restaurant':
+        flash('Please login as a restaurant', 'error')
+        return redirect(url_for('login'))
+    
+    if request.method == 'POST':
+        description = request.form.get('description')
+        price = request.form.get('price')
+        quantity = request.form.get('quantity')
+        start_time = request.form.get('start_time')
+        end_time = request.form.get('end_time')
+        
+        try:
+            db = get_db()
+            cursor = db.cursor()
+            
+            cursor.execute('''
+                INSERT INTO plates 
+                (restaurant_id, description, price, quantity_available, quantity_original, start_time, end_time)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
+            ''', (session['user_id'], description, price, quantity, quantity, start_time, end_time))
+            
+            db.commit()
+            cursor.close()
+            
+            flash('Listing created successfully!', 'success')
+            return redirect(url_for('restaurant_dashboard'))
+            
+        except mysql.connector.Error as err:
+            flash(f'Error creating listing: {err}', 'error')
+            return redirect(url_for('create_listing'))
+    
+    return render_template('restaurant/create_listing.html')
+
+# Placeholder routes for other user types (your teammates will implement these)
 @app.route('/customer/dashboard')
 def customer_dashboard():
-    return "Customer Dashboard (handled by teammate)"
+    if 'user_id' not in session or session.get('user_type') not in ['customer', 'donner', 'needy']:
+        flash('Please login first', 'error')
+        return redirect(url_for('login'))
+    return render_template('customer/dashboard.html')
 
 @app.route('/admin/dashboard')
 def admin_dashboard():
-    return "Admin Dashboard (handled by teammate)"
+    if 'user_id' not in session or session.get('user_type') != 'admin':
+        flash('Please login as admin', 'error')
+        return redirect(url_for('login'))
+    return render_template('admin/dashboard.html')
 
 if __name__ == '__main__':
     with app.app_context():

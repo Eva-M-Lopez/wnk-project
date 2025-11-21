@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block title %}Create Listing - Waste Not Kitchen{% endblock %}
+
+{% block content %}
+<div class="form-container">
+    <h2>Create New Plate Listing</h2>
+    <form method="POST" action="{{ url_for('create_listing') }}">
+        <div class="form-group">
+            <label for="description">Plate Description:</label>
+            <textarea name="description" id="description" required rows="4" placeholder="Describe the food item..."></textarea>
+        </div>
+
+        <div class="form-group">
+            <label for="price">Price ($):</label>
+            <input type="number" name="price" id="price" step="0.01" min="0" required placeholder="0.00">
+        </div>
+
+        <div class="form-group">
+            <label for="quantity">Quantity Available:</label>
+            <input type="number" name="quantity" id="quantity" min="1" required placeholder="1">
+        </div>
+
+        <div class="form-group">
+            <label for="start_time">Start Time:</label>
+            <input type="datetime-local" name="start_time" id="start_time" required>
+        </div>
+
+        <div class="form-group">
+            <label for="end_time">End Time:</label>
+            <input type="datetime-local" name="end_time" id="end_time" required>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Create Listing</button>
+        <a href="{{ url_for('restaurant_dashboard') }}" class="btn btn-secondary">Cancel</a>
+    </form>
+</div>
+{% endblock %}

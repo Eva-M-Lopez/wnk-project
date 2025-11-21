@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block title %}Restaurant Dashboard - Waste Not Kitchen{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <h2>Restaurant Dashboard</h2>
+    
+    <div class="actions">
+        <a href="{{ url_for('create_listing') }}" class="btn btn-primary">Create New Listing</a>
+    </div>
+
+    <h3>My Listings</h3>
+    
+    {% if plates %}
+        <table class="listing-table">
+            <thead>
+                <tr>
+                    <th>Description</th>
+                    <th>Price</th>
+                    <th>Available</th>
+                    <th>Original Qty</th>
+                    <th>Start Time</th>
+                    <th>End Time</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for plate in plates %}
+                <tr>
+                    <td>{{ plate.description }}</td>
+                    <td>${{ "%.2f"|format(plate.price) }}</td>
+                    <td>{{ plate.quantity_available }}</td>
+                    <td>{{ plate.quantity_original }}</td>
+                    <td>{{ plate.start_time }}</td>
+                    <td>{{ plate.end_time }}</td>
+                    <td>
+                        <span class="status-badge status-{{ plate.status }}">
+                            {{ plate.status }}
+                        </span>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p class="no-data">No listings yet. Create your first listing to get started!</p>
+    {% endif %}
+</div>
+{% endblock %}
