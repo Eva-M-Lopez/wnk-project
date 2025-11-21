@@ -1,0 +1,16 @@
+Clone repo:
+git clone https://github.com/Eva-M-Lopez/wnk-project.git
+cd wnk-project
+
+venv and install requirements:
+python -m venv venv
+venv\Scripts\activate          # Windows
+pip install -r requirements.txt
+
+Install MAMP and set up their own local database:
+Install MAMP
+Create a database called wnk_db in phpMyAdmin
+Update their own .env file with their MySQL credentials
+
+Run the app:
+python app.py
