@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Waste Not Kitchen{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <nav>
+        <div class="nav-container">
+            <h1>Waste Not Kitchen</h1>
+            <ul>
+                {% if session.user_id %}
+                    <li>Welcome, {{ session.name }}!</li>
+                    {% if session.user_type == 'restaurant' %}
+                        <li><a href="{{ url_for('restaurant_dashboard') }}">Dashboard</a></li>
+                    {% elif session.user_type == 'admin' %}
+                        <li><a href="{{ url_for('admin_dashboard') }}">Admin</a></li>
+                    {% else %}
+                        <li><a href="{{ url_for('customer_dashboard') }}">Dashboard</a></li>
+                    {% endif %}
+                    <li><a href="{{ url_for('profile') }}">Profile</a></li>
+                    <li><a href="{{ url_for('logout') }}">Logout</a></li>
+                {% else %}
+                    <li><a href="{{ url_for('index') }}">Home</a></li>
+                    <li><a href="{{ url_for('login') }}">Login</a></li>
+                    <li><a href="{{ url_for('register') }}">Register</a></li>
+                {% endif %}
+            </ul>
+        </div>
+    </nav>
+
+    <main>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-messages">
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }}">{{ message }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer>
+        <p>&copy; 2025 Waste Not Kitchen. All rights reserved.</p>
+    </footer>
+</body>
+</html>

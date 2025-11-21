@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="home-container">
+    <div class="hero">
+        <h2>Welcome to Waste Not Kitchen</h2>
+        <p>Reducing food waste, one meal at a time.</p>
+        <p>Connect restaurants with customers to rescue surplus food and help those in need.</p>
+    </div>
+
+    <div class="features">
+        <div class="feature">
+            <h3>For Restaurants</h3>
+            <p>Sell surplus food at reduced prices instead of wasting it.</p>
+        </div>
+        <div class="feature">
+            <h3>For Customers</h3>
+            <p>Get great meals at discounted prices.</p>
+        </div>
+        <div class="feature">
+            <h3>For Donors</h3>
+            <p>Pay it forward and help feed those in need.</p>
+        </div>
+        <div class="feature">
+            <h3>For Those in Need</h3>
+            <p>Access free meals donated by generous community members.</p>
+        </div>
+    </div>
+
+    <div class="cta">
+        <a href="{{ url_for('register') }}" class="btn btn-primary">Get Started</a>
+        <a href="{{ url_for('login') }}" class="btn btn-secondary">Login</a>
+    </div>
+</div>
+{% endblock %}

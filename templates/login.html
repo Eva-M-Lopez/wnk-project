@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block title %}Login - Waste Not Kitchen{% endblock %}
+
+{% block content %}
+<div class="form-container">
+    <h2>Login to Waste Not Kitchen</h2>
+    <form method="POST" action="{{ url_for('login') }}">
+        <div class="form-group">
+            <label for="email">Email:</label>
+            <input type="email" name="email" id="email" required>
+        </div>
+
+        <div class="form-group">
+            <label for="password">Password:</label>
+            <input type="password" name="password" id="password" required>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Login</button>
+        <p>Don't have an account? <a href="{{ url_for('register') }}">Register here</a></p>
+    </form>
+</div>
+{% endblock %}
