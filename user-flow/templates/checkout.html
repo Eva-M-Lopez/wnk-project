@@ -1,12 +1,23 @@
 {% extends "layout.html" %}
+
 {% block body %}
-  {% if not row %}<p>Reservation not found.</p>{% else %}
-    <p><strong>{{ row.title }}</strong> × {{ row.qty }} —
-       ${{ '%.2f'|format(row.qty*row.price) }}</p>
+  {% if not row %}
+    <p>Reservation not found.</p>
+  {% else %}
+    <p>
+      <strong>{{ row.title }}</strong> × {{ row.qty }} —
+      ${{ '%.2f'|format(row.qty * row.price) }}
+    </p>
+
     <form method="post" action="{{ url_for('actions.confirm') }}">
       <input type="hidden" name="reservation_id" value="{{ row.reservation_id }}">
-      <button type="submit">{{ 'Confirm Donation' if role=='DONOR' else 'Confirm & Get Pickup Code' }}</button>
+      <button type="submit">
+        {{ 'Confirm Donation' if role == 'DONOR' else 'Confirm & Get Pickup Code' }}
+      </button>
     </form>
-    <p style="margin-top:8px"><a href="{{ url_for('market.marketplace') }}">Back to marketplace</a></p>
+
+    <p style="margin-top:8px">
+      <a href="{{ url_for('market.marketplace') }}">Back to marketplace</a>
+    </p>
   {% endif %}
 {% endblock %}
