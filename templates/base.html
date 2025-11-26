@@ -14,18 +14,20 @@
                 {% if session.user_id %}
                     <li>Welcome, {{ session.name }}!</li>
                     {% if session.user_type == 'restaurant' %}
-                        <li><a href="{{ url_for('restaurant_dashboard') }}">Dashboard</a></li>
+                        <li><a href="{{ url_for('restaurant.dashboard') }}">Dashboard</a></li>
                     {% elif session.user_type == 'admin' %}
-                        <li><a href="{{ url_for('admin_dashboard') }}">Admin</a></li>
+                        <li><a href="{{ url_for('admin.dashboard') }}">Admin</a></li>
+                    {% elif session.user_type == 'needy' %}
+                        <li><a href="{{ url_for('customer.free_plates') }}">Free Plates</a></li>
                     {% else %}
-                        <li><a href="{{ url_for('customer_dashboard') }}">Dashboard</a></li>
+                        <li><a href="{{ url_for('customer.marketplace') }}">Marketplace</a></li>
                     {% endif %}
-                    <li><a href="{{ url_for('profile') }}">Profile</a></li>
-                    <li><a href="{{ url_for('logout') }}">Logout</a></li>
+                    <li><a href="{{ url_for('auth.profile') }}">Profile</a></li>
+                    <li><a href="{{ url_for('auth.logout') }}">Logout</a></li>
                 {% else %}
-                    <li><a href="{{ url_for('index') }}">Home</a></li>
-                    <li><a href="{{ url_for('login') }}">Login</a></li>
-                    <li><a href="{{ url_for('register') }}">Register</a></li>
+                    <li><a href="{{ url_for('auth.index') }}">Home</a></li>
+                    <li><a href="{{ url_for('auth.login') }}">Login</a></li>
+                    <li><a href="{{ url_for('auth.register') }}">Register</a></li>
                 {% endif %}
             </ul>
         </div>

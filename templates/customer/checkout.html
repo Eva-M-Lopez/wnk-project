@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block title %}Checkout - Waste Not Kitchen{% endblock %}
+
+{% block content %}
+<div class="form-container">
+    <h2>Checkout</h2>
+    
+    {% if reservation %}
+        <div class="checkout-details">
+            <h3>{{ reservation.title }}</h3>
+            <p>Quantity: {{ reservation.qty }}</p>
+            <p>Price per plate: ${{ "%.2f"|format(reservation.price) }}</p>
+            <p class="total">Total: ${{ "%.2f"|format(reservation.price * reservation.qty) }}</p>
+        </div>
+        
+        <form method="POST" action="{{ url_for('customer.confirm') }}">
+            <input type="hidden" name="reservation_id" value="{{ reservation.reservation_id }}">
+            
+            <div class="checkout-actions">
+                <button type="submit" class="btn btn-primary">
+                    {% if session.user_type == 'donner' %}
+                        Confirm Donation
+                    {% else %}
+                        Confirm Order
+                    {% endif %}
+                </button>
+                <a href="{{ url_for('customer.marketplace') }}" class="btn btn-secondary">Cancel</a>
+            </div>
+        </form>
+    {% else %}
+        <p>No reservation found.</p>
+        <a href="{{ url_for('customer.marketplace') }}" class="btn btn-primary">Back to Marketplace</a>
+    {% endif %}
+</div>
+{% endblock %}

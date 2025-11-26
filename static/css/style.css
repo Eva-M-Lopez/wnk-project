@@ -305,3 +305,117 @@ footer {
         grid-template-columns: 1fr;
     }
 }
+
+/* Marketplace & Plates Grid */
+.plates-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 2rem;
+    margin-top: 2rem;
+}
+
+.plate-card {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    display: flex;
+    flex-direction: column;
+}
+
+.plate-card h3 {
+    color: #2c3e50;
+    margin-bottom: 0.5rem;
+}
+
+.restaurant-name {
+    color: #7f8c8d;
+    font-size: 0.9rem;
+    margin-bottom: 1rem;
+    font-style: italic;
+}
+
+.description {
+    flex-grow: 1;
+    margin-bottom: 1rem;
+    color: #555;
+}
+
+.price {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #27ae60;
+    margin: 0.5rem 0;
+}
+
+.free-badge {
+    color: #e74c3c;
+}
+
+.quantity {
+    color: #7f8c8d;
+    font-size: 0.9rem;
+}
+
+.time-window {
+    color: #95a5a6;
+    font-size: 0.85rem;
+    margin: 0.5rem 0;
+}
+
+.reserve-form {
+    margin-top: 1rem;
+}
+
+.qty-selector {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.qty-selector label {
+    font-weight: normal;
+    margin: 0;
+}
+
+.qty-selector input {
+    width: 80px;
+    padding: 0.5rem;
+}
+
+/* Checkout */
+.checkout-details {
+    background: #f8f9fa;
+    padding: 2rem;
+    border-radius: 8px;
+    margin-bottom: 2rem;
+}
+
+.checkout-details h3 {
+    color: #2c3e50;
+    margin-bottom: 1rem;
+}
+
+.checkout-details .total {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #27ae60;
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 2px solid #ddd;
+}
+
+.checkout-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+}
+
+.info-message {
+    background: #d1ecf1;
+    color: #0c5460;
+    padding: 1rem;
+    border-radius: 4px;
+    margin-bottom: 1rem;
+}

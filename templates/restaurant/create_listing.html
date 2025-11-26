@@ -5,7 +5,12 @@
 {% block content %}
 <div class="form-container">
     <h2>Create New Plate Listing</h2>
-    <form method="POST" action="{{ url_for('create_listing') }}">
+    <form method="POST" action="{{ url_for('restaurant.create_listing') }}">
+        <div class="form-group">
+            <label for="title">Plate Title:</label>
+            <input type="text" name="title" id="title" required placeholder="e.g., Grilled Chicken Salad">
+        </div>
+
         <div class="form-group">
             <label for="description">Plate Description:</label>
             <textarea name="description" id="description" required rows="4" placeholder="Describe the food item..."></textarea>
@@ -32,7 +37,7 @@
         </div>
 
         <button type="submit" class="btn btn-primary">Create Listing</button>
-        <a href="{{ url_for('restaurant_dashboard') }}" class="btn btn-secondary">Cancel</a>
+        <a href="{{ url_for('restaurant.dashboard') }}" class="btn btn-secondary">Cancel</a>
     </form>
 </div>
 {% endblock %}

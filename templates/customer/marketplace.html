@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block title %}Marketplace - Waste Not Kitchen{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <h2>Available Plates</h2>
+    
+    {% if plates %}
+        <div class="plates-grid">
+            {% for plate in plates %}
+            <div class="plate-card">
+                <h3>{{ plate.title or 'Food Item' }}</h3>
+                <p class="restaurant-name">{{ plate.restaurant_name }}</p>
+                <p class="description">{{ plate.description }}</p>
+                <p class="price">${{ "%.2f"|format(plate.price) }}</p>
+                <p class="quantity">Available: {{ plate.quantity_available }}</p>
+                <p class="time-window">
+                    <small>Pickup: {{ plate.start_time.strftime('%m/%d %I:%M%p') }} - {{ plate.end_time.strftime('%I:%M%p') }}</small>
+                </p>
+                
+                <form method="POST" action="{{ url_for('customer.reserve') }}" class="reserve-form">
+                    <input type="hidden" name="plate_id" value="{{ plate.plate_id }}">
+                    <div class="qty-selector">
+                        <label for="qty_{{ plate.plate_id }}">Quantity:</label>
+                        <input type="number" name="qty" id="qty_{{ plate.plate_id }}" value="1" min="1" max="{{ plate.quantity_available }}">
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        {% if session.user_type == 'donner' %}
+                            Donate
+                        {% else %}
+                            Reserve
+                        {% endif %}
+                    </button>
+                </form>
+            </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p class="no-data">No plates available at the moment. Check back later!</p>
+    {% endif %}
+</div>
+{% endblock %}

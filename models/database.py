@@ -51,11 +51,12 @@ def init_db():
         )
     ''')
     
-    # Create plates table
+    # Create plates table (updated with title field)
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS plates (
             plate_id INT PRIMARY KEY AUTO_INCREMENT,
             restaurant_id INT NOT NULL,
+            title VARCHAR(255),
             description TEXT NOT NULL,
             price DECIMAL(10, 2) NOT NULL,
             quantity_available INT NOT NULL,
@@ -63,10 +64,42 @@ def init_db():
             start_time DATETIME NOT NULL,
             end_time DATETIME NOT NULL,
             status ENUM('active', 'sold_out', 'expired') DEFAULT 'active',
+            is_active TINYINT DEFAULT 1,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (restaurant_id) REFERENCES users(user_id)
         )
     ''')
     
+    # Create reservations table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS reservations (
+            reservation_id INT PRIMARY KEY AUTO_INCREMENT,
+            user_id INT NOT NULL,
+            plate_id INT NOT NULL,
+            qty INT NOT NULL,
+            status ENUM('HELD', 'CONFIRMED', 'CANCELLED', 'PICKED_UP') DEFAULT 'HELD',
+            pickup_code VARCHAR(8),
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            confirmed_at TIMESTAMP NULL,
+            FOREIGN KEY (user_id) REFERENCES users(user_id),
+            FOREIGN KEY (plate_id) REFERENCES plates(plate_id)
+        )
+    ''')
+    
+    # Create transactions table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS transactions (
+            transaction_id INT PRIMARY KEY AUTO_INCREMENT,
+            payer_user_id INT NOT NULL,
+            payee_restaurant_id INT NOT NULL,
+            amount DECIMAL(10, 2) NOT NULL,
+            type ENUM('CUSTOMER_PURCHASE', 'DONATION_PURCHASE') NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (payer_user_id) REFERENCES users(user_id),
+            FOREIGN KEY (payee_restaurant_id) REFERENCES users(user_id)
+        )
+    ''')
+    
     db.commit()
     cursor.close()
+    print("Database initialized successfully!")
