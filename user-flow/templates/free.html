@@ -1,0 +1,20 @@
+{% extends "layout.html" %}
+{% block body %}
+  {% if role!='NEEDY' %}<p>Needy only.</p>{% else %}
+    {% if not rows %}<p>No free plates available right now.</p>{% endif %}
+    {% for p in rows %}
+      <div style="border:1px solid #ddd;border-radius:8px;padding:12px;margin:10px 0;">
+        <div style="display:flex;justify-content:space-between">
+          <strong>{{ p.title }}</strong>
+          <span>Funded left: {{ p.free_left }} • Stock: {{ p.qty_available }}</span>
+        </div>
+        <div>By {{ p.display_name }} | Pickup: {{ p.window_start }}–{{ p.window_end }}</div>
+        <form method="post" action="{{ url_for('needy.checkout_free') }}" style="margin-top:8px">
+          <input type="hidden" name="plate_id" value="{{ p.plate_id }}">
+          <input type="number" name="qty" min="1" max="{{ p.max_claim }}" value="1" style="width:80px">
+          <button type="submit">Claim Free</button>
+        </form>
+      </div>
+    {% endfor %}
+  {% endif %}
+{% endblock %}

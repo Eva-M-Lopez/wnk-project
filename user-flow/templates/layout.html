@@ -1,0 +1,19 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>{{ title }}</title>
+<div style="font-family:system-ui;max-width:900px;margin:auto;padding:16px">
+  <div style="display:flex;justify-content:space-between;align-items:center">
+    <h2 style="margin:0">{{ title }}</h2>
+    <div>
+      <a href="{{ url_for('market.marketplace') }}?as=customer">Customer</a> |
+      <a href="{{ url_for('market.marketplace') }}?as=donor">Donor</a> |
+      <a href="{{ url_for('needy.free') }}?as=needy">Needy</a>
+    </div>
+  </div>
+  {% if session._flash %}
+    <div style="background:#ecfeff;border:1px solid #99f6e4;padding:10px;border-radius:8px;margin:10px 0;">
+      {{ session.pop('_flash') }}
+    </div>
+  {% endif %}
+  {% block body %}{% endblock %}
+</div>

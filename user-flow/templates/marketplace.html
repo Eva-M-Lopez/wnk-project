@@ -1,0 +1,22 @@
+{% extends "layout.html" %}
+{% block body %}
+  {% if not plates %}<p>No plates available right now.</p>{% endif %}
+  {% for p in plates %}
+    <div style="border:1px solid #ddd;border-radius:8px;padding:12px;margin:10px 0;">
+      <div style="display:flex;justify-content:space-between">
+        <strong>{{ p.title }}</strong><span>${{ '%.2f'|format(p.price) }}</span>
+      </div>
+      <div>By {{ p.display_name }} — Left: {{ p.qty_available }}</div>
+      <div>Pickup: {{ p.window_start }}–{{ p.window_end }}</div>
+      {% if role in ['CUSTOMER','DONOR'] %}
+        <form method="post" action="{{ url_for('actions.reserve') }}" style="margin-top:8px">
+          <input type="hidden" name="plate_id" value="{{ p.plate_id }}">
+          <input type="number" name="qty" min="1" max="{{ p.qty_available }}" value="1" style="width:80px">
+          <button type="submit">{{ 'Fund for Needy' if role == 'DONOR' else 'Reserve' }}</button>
+        </form>
+      {% elif role == 'NEEDY' %}
+        <a href="{{ url_for('needy.free') }}"><button>See Free Plates</button></a>
+      {% endif %}
+    </div>
+  {% endfor %}
+{% endblock %}
