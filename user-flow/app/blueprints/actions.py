@@ -80,8 +80,9 @@ def confirm():
                 session.pop("held_reservation_id", None)
                 session["_flash"] = "Thank you! Your donation has been recorded."
                 return redirect(url_for("market.marketplace"))
-    except Exception as e:
-        con.rollback(); return (f"Could not confirm: {e}", 400)
+    except Exception:
+        con.rollback()
+        return ("An unexpected error occurred. Please try again.", 400)
     finally:
         con.close()
     return redirect(url_for("actions.checkout"))

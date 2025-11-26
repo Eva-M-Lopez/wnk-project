@@ -4,12 +4,6 @@ from ..auth import ensure_dev_user, maybe_switch_user
 
 bp = Blueprint("market", __name__)
 
-@bp.before_app_request
-def _dev_login_middleware():
-    rv = maybe_switch_user()
-    if rv: return rv
-    ensure_dev_user()
-
 @bp.route("/")
 def home():
     return marketplace()

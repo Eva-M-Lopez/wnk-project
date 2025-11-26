@@ -70,7 +70,7 @@ def checkout_free():
             """, (user["user_id"],))
             used_today = int(cur.fetchone()["used_today"])
             if used_today + qty > 2:
-                session["_flash"] = "❗ You have reached your free plate limit for today."
+                session["_flash"] = "You have reached your free plate limit for today."
                 con.rollback()
                 return redirect(url_for("needy.free"))
 
@@ -78,19 +78,19 @@ def checkout_free():
             cur.execute("SELECT * FROM plates WHERE plate_id = %s FOR UPDATE", (plate_id,))
             plate = cur.fetchone()
             if not plate:
-                session["_flash"] = "❗ Plate not found."
+                session["_flash"] = "This plate is no longer available"
                 con.rollback()
                 return redirect(url_for("needy.free"))
 
             cur.execute("SELECT NOW() AS n")
             now = cur.fetchone()["n"]
             if not (plate["window_start"] <= now <= plate["window_end"]):
-                session["_flash"] = "❗ Outside pickup window."
+                session["_flash"] = "This plate cannot be claimed at this time."
                 con.rollback()
                 return redirect(url_for("needy.free"))
 
             if int(plate["qty_available"]) < qty:
-                session["_flash"] = "❗ Not enough stock available."
+                session["_flash"] = "Not enough stock available."
                 con.rollback()
                 return redirect(url_for("needy.free"))
 
@@ -111,10 +111,10 @@ def checkout_free():
             """, (qty, plate_id))
 
             con.commit()
-            session["_flash"] = f"✅ Free plate claimed! Your pickup code is {code}."
+            session["_flash"] = f"Free plate claimed! Your pickup code is {code}."
     except Exception as e:
         con.rollback()
-        session["_flash"] = f"❗ Error claiming free plate: {e}"
+        session["_flash"] = "An unexpected error occurred when claiming this plate. Please try again."
     finally:
         con.close()
 
