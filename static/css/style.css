@@ -419,3 +419,24 @@ footer {
     border-radius: 4px;
     margin-bottom: 1rem;
 }
+
+.limit-reached {
+    color: #e74c3c;
+    font-weight: bold;
+    text-align: center;
+    margin-top: 1rem;
+}
+
+.limit-reached-message {
+    background-color: #d4edda;
+    color: #155724;
+    padding: 1rem;
+    border-radius: 4px;
+    margin-top: 1rem;
+    font-weight: bold;
+}
+
+.no-data h3 {
+    color: #2c3e50;
+    margin-bottom: 1rem;
+}

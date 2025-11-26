@@ -51,7 +51,7 @@ def init_db():
         )
     ''')
     
-    # Create plates table (updated with title field)
+    # Create plates table
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS plates (
             plate_id INT PRIMARY KEY AUTO_INCREMENT,
@@ -70,18 +70,21 @@ def init_db():
         )
     ''')
     
-    # Create reservations table
+    # Create reservations table with updated status
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS reservations (
             reservation_id INT PRIMARY KEY AUTO_INCREMENT,
-            user_id INT NOT NULL,
+            user_id INT NULL,
+            donor_id INT NULL,
             plate_id INT NOT NULL,
             qty INT NOT NULL,
-            status ENUM('HELD', 'CONFIRMED', 'CANCELLED', 'PICKED_UP') DEFAULT 'HELD',
+            status ENUM('HELD', 'CONFIRMED', 'CANCELLED', 'PICKED_UP', 'DONATED', 'CLAIMED') DEFAULT 'HELD',
             pickup_code VARCHAR(8),
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             confirmed_at TIMESTAMP NULL,
+            claimed_at TIMESTAMP NULL,
             FOREIGN KEY (user_id) REFERENCES users(user_id),
+            FOREIGN KEY (donor_id) REFERENCES users(user_id),
             FOREIGN KEY (plate_id) REFERENCES plates(plate_id)
         )
     ''')

@@ -10,6 +10,11 @@ def marketplace():
         flash('Please login first', 'error')
         return redirect(url_for('auth.login'))
     
+    # Redirect needy users to free plates page
+    if session.get('user_type') == 'needy':
+        flash('As a needy user, you can access free donated plates only', 'info')
+        return redirect(url_for('customer.free_plates'))
+    
     db = get_db()
     cursor = db.cursor(dictionary=True)
     
@@ -37,21 +42,33 @@ def free_plates():
     db = get_db()
     cursor = db.cursor(dictionary=True)
     
-    # Get plates that have been donated (paid for by donors)
+    # Check how many plates this needy user has already claimed
     cursor.execute('''
-        SELECT p.plate_id, p.title, p.description, p.price, p.quantity_available,
-               p.start_time, p.end_time, u.name as restaurant_name
-        FROM plates p
+        SELECT COUNT(*) as count 
+        FROM reservations 
+        WHERE user_id = %s AND status IN ('CLAIMED', 'CONFIRMED')
+          AND DATE(claimed_at) = CURDATE()
+    ''', (session['user_id'],))
+    claimed_count = cursor.fetchone()['count']
+    
+    # Get donated plates that haven't been claimed yet
+    cursor.execute('''
+        SELECT r.reservation_id, r.qty, p.plate_id, p.title, p.description, 
+               p.price, p.start_time, p.end_time, u.name as restaurant_name
+        FROM reservations r
+        JOIN plates p ON p.plate_id = r.plate_id
         JOIN users u ON u.user_id = p.restaurant_id
-        WHERE p.is_active = 1 AND p.quantity_available > 0
+        WHERE r.status = 'DONATED'
           AND NOW() BETWEEN p.start_time AND p.end_time
-        ORDER BY p.end_time ASC
-        LIMIT 2
+        ORDER BY r.created_at ASC
     ''')
-    plates = cursor.fetchall()
+    donated_plates = cursor.fetchall()
     cursor.close()
     
-    return render_template('customer/free_plates.html', plates=plates)
+    return render_template('customer/free_plates.html', 
+                          plates=donated_plates, 
+                          claimed_count=claimed_count,
+                          max_allowed=2)
 
 @bp.route('/reserve', methods=['POST'])
 def reserve():
@@ -96,6 +113,65 @@ def reserve():
         db.rollback()
         flash(f'Error creating reservation: {e}', 'error')
         return redirect(url_for('customer.marketplace'))
+    finally:
+        cursor.close()
+
+@bp.route('/claim-free/<int:reservation_id>', methods=['POST'])
+def claim_free(reservation_id):
+    if 'user_id' not in session or session.get('user_type') != 'needy':
+        flash('This action is for needy users only', 'error')
+        return redirect(url_for('auth.login'))
+    
+    db = get_db()
+    cursor = db.cursor(dictionary=True)
+    
+    try:
+        # Check how many plates user has claimed today
+        cursor.execute('''
+            SELECT COUNT(*) as count 
+            FROM reservations 
+            WHERE user_id = %s AND status IN ('CLAIMED', 'CONFIRMED')
+              AND DATE(claimed_at) = CURDATE()
+        ''', (session['user_id'],))
+        claimed_count = cursor.fetchone()['count']
+        
+        if claimed_count >= 2:
+            flash('You have already claimed your maximum of 2 free plates today. Please come back tomorrow!', 'error')
+            return redirect(url_for('customer.free_plates'))
+        
+        # Get the donated reservation
+        cursor.execute('''
+            SELECT r.*, p.restaurant_id
+            FROM reservations r
+            JOIN plates p ON p.plate_id = r.plate_id
+            WHERE r.reservation_id = %s AND r.status = 'DONATED'
+        ''', (reservation_id,))
+        reservation = cursor.fetchone()
+        
+        if not reservation:
+            flash('This donated plate is no longer available', 'error')
+            return redirect(url_for('customer.free_plates'))
+        
+        # Generate pickup code
+        pickup_code = f"{secrets.randbelow(10**8):08d}"
+        
+        # Claim the reservation
+        cursor.execute('''
+            UPDATE reservations 
+            SET user_id = %s, status = 'CLAIMED', pickup_code = %s, 
+                claimed_at = NOW(), confirmed_at = NOW()
+            WHERE reservation_id = %s
+        ''', (session['user_id'], pickup_code, reservation_id))
+        
+        db.commit()
+        
+        flash(f'Free plate claimed! Your pickup code is: {pickup_code}', 'success')
+        return redirect(url_for('customer.free_plates'))
+        
+    except Exception as e:
+        db.rollback()
+        flash(f'Error claiming plate: {e}', 'error')
+        return redirect(url_for('customer.free_plates'))
     finally:
         cursor.close()
 
@@ -153,46 +229,66 @@ def confirm():
             flash('Not enough plates available', 'error')
             return redirect(url_for('customer.marketplace'))
         
-        # Update plate quantity
-        cursor.execute('''
-            UPDATE plates 
-            SET quantity_available = quantity_available - %s
-            WHERE plate_id = %s
-        ''', (reservation['qty'], reservation['plate_id']))
-        
-        # Generate pickup code
-        pickup_code = f"{secrets.randbelow(10**8):08d}"
-        
-        # Confirm reservation
-        cursor.execute('''
-            UPDATE reservations 
-            SET status = 'CONFIRMED', confirmed_at = NOW(), pickup_code = %s
-            WHERE reservation_id = %s
-        ''', (pickup_code, res_id))
-        
-        # Record transaction (if customer, not donor)
-        if session['user_type'] == 'customer':
-            amount = float(reservation['price']) * int(reservation['qty'])
+        # DONOR FLOW - Deduct inventory and create donated reservation
+        if session['user_type'] == 'donner':
+            # Update plate quantity (donors are paying for real plates)
             cursor.execute('''
-                INSERT INTO transactions (payer_user_id, payee_restaurant_id, amount, type)
-                VALUES (%s, %s, %s, 'CUSTOMER_PURCHASE')
-            ''', (session['user_id'], reservation['restaurant_id'], amount))
-        elif session['user_type'] == 'donner':
+                UPDATE plates 
+                SET quantity_available = quantity_available - %s
+                WHERE plate_id = %s
+            ''', (reservation['qty'], reservation['plate_id']))
+            
+            # Record the transaction
             amount = float(reservation['price']) * int(reservation['qty'])
             cursor.execute('''
                 INSERT INTO transactions (payer_user_id, payee_restaurant_id, amount, type)
                 VALUES (%s, %s, %s, 'DONATION_PURCHASE')
             ''', (session['user_id'], reservation['restaurant_id'], amount))
+            
+            # Update this reservation to DONATED status (available for needy to claim)
+            cursor.execute('''
+                UPDATE reservations 
+                SET status = 'DONATED', donor_id = %s, confirmed_at = NOW()
+                WHERE reservation_id = %s
+            ''', (session['user_id'], res_id))
+            
+            db.commit()
+            session.pop('held_reservation_id', None)
+            
+            flash(f'Thank you for donating {reservation["qty"]} plate(s)! They are now available for those in need.', 'success')
+            return redirect(url_for('customer.marketplace'))
         
-        db.commit()
-        session.pop('held_reservation_id', None)
-        
-        if session['user_type'] == 'donner':
-            flash('Thank you for your donation!', 'success')
+        # CUSTOMER FLOW - Normal purchase
         else:
+            # Update plate quantity
+            cursor.execute('''
+                UPDATE plates 
+                SET quantity_available = quantity_available - %s
+                WHERE plate_id = %s
+            ''', (reservation['qty'], reservation['plate_id']))
+            
+            # Generate pickup code
+            pickup_code = f"{secrets.randbelow(10**8):08d}"
+            
+            # Confirm reservation
+            cursor.execute('''
+                UPDATE reservations 
+                SET status = 'CONFIRMED', confirmed_at = NOW(), pickup_code = %s
+                WHERE reservation_id = %s
+            ''', (pickup_code, res_id))
+            
+            # Record transaction
+            amount = float(reservation['price']) * int(reservation['qty'])
+            cursor.execute('''
+                INSERT INTO transactions (payer_user_id, payee_restaurant_id, amount, type)
+                VALUES (%s, %s, %s, 'CUSTOMER_PURCHASE')
+            ''', (session['user_id'], reservation['restaurant_id'], amount))
+            
+            db.commit()
+            session.pop('held_reservation_id', None)
+            
             flash(f'Order confirmed! Your pickup code is: {pickup_code}', 'success')
-        
-        return redirect(url_for('customer.marketplace'))
+            return redirect(url_for('customer.marketplace'))
         
     except Exception as e:
         db.rollback()
