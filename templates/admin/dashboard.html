@@ -3,6 +3,9 @@
 {% block title %}Admin Dashboard - Waste Not Kitchen{% endblock %}
 
 {% block content %}
+<!-- Include Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 <style>
     .admin-container {
         max-width: 1200px;
@@ -76,9 +79,25 @@
         border-left: 5px solid #2e7d32;
     }
 
+    /* Chart Styles */
+    .chart-container {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 30px;
+        margin-bottom: 40px;
+    }
+    .chart-box {
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    }
+    .chart-box h3 { margin-top: 0; color: #444; }
+
     /* Print Styles for Reports */
     @media print {
-        nav, footer, .admin-controls, .flash-messages, .btn {
+        /* Added .no-print to the exclusion list */
+        nav, footer, .admin-controls, .flash-messages, .btn, .no-print {
             display: none !important;
         }
         .admin-container {
@@ -96,6 +115,10 @@
             -webkit-print-color-adjust: exact;
         }
     }
+
+    @media (max-width: 900px) {
+        .chart-container { grid-template-columns: 1fr; }
+    }
 </style>
 
 <div class="admin-container">
@@ -103,6 +126,8 @@
         <h2>Admin Dashboard</h2>
         {% if report_type %}
             <button onclick="window.print()" class="btn btn-secondary">Print / Save PDF</button>
+        {% else %}
+            <a href="{{ url_for('admin.dashboard') }}" class="btn btn-secondary" style="visibility: hidden;">Reset</a>
         {% endif %}
     </div>
 
@@ -166,6 +191,11 @@
     <!-- REPORT RESULTS AREA -->
     {% if report_type %}
         <div class="report-content">
+            <!-- Add a Back Button to return to Charts -->
+            <!-- ADDED 'no-print' CLASS HERE -->
+            <div class="no-print" style="margin-bottom: 15px;">
+                <a href="{{ url_for('admin.dashboard') }}">&larr; Back to Overview</a>
+            </div>
 
             <!-- MEMBER LOOKUP RESULTS -->
             {% if report_type == 'member_lookup' %}
@@ -356,11 +386,85 @@
 
         </div>
     {% else %}
-        <div style="text-align: center; padding: 50px; color: #666;">
-            <div style="font-size: 4em; margin-bottom: 20px;">📊</div>
-            <h3>Welcome to the Admin Panel</h3>
-            <p>Select a tool from the control panel above to generate reports.</p>
+        <!-- CHARTS / OVERVIEW SECTION -->
+        <div class="chart-container">
+            <!-- Line Chart: Financial Trend -->
+            <div class="chart-box">
+                <h3>Revenue Trends (Last 30 Days)</h3>
+                <canvas id="financialChart"></canvas>
+            </div>
+
+            <!-- Pie Chart: User Demographics -->
+            <div class="chart-box">
+                <h3>User Demographics</h3>
+                <canvas id="userChart"></canvas>
+            </div>
         </div>
+
+        <script>
+            // 1. User Demographics Doughnut Chart
+            const userCtx = document.getElementById('userChart').getContext('2d');
+            new Chart(userCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: {{ chart_data.user_labels | tojson }},
+                    datasets: [{
+                        data: {{ chart_data.user_counts | tojson }},
+                        backgroundColor: [
+                            '#3498db', // Blue
+                            '#e74c3c', // Red
+                            '#2ecc71', // Green
+                            '#f1c40f', // Yellow
+                            '#9b59b6'  // Purple
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { position: 'bottom' }
+                    }
+                }
+            });
+
+            // 2. Financial Trends Line Chart
+            const finCtx = document.getElementById('financialChart').getContext('2d');
+            new Chart(finCtx, {
+                type: 'line',
+                data: {
+                    labels: {{ chart_data.dates | tojson }},
+                    datasets: [
+                        {
+                            label: 'Customer Sales ($)',
+                            data: {{ chart_data.customer_trend | tojson }},
+                            borderColor: '#3498db',
+                            backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                            fill: true,
+                            tension: 0.3
+                        },
+                        {
+                            label: 'Donations ($)',
+                            data: {{ chart_data.donor_trend | tojson }},
+                            borderColor: '#2ecc71',
+                            backgroundColor: 'rgba(46, 204, 113, 0.1)',
+                            fill: true,
+                            tension: 0.3
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) { return '$' + value; }
+                            }
+                        }
+                    }
+                }
+            });
+        </script>
     {% endif %}
 </div>
 {% endblock %}
