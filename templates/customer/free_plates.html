@@ -7,40 +7,206 @@
     <h2>Free Plates (Donated by Community)</h2>
     
     <div class="info-message">
-        <p><strong>Daily Limit:</strong> You have claimed <strong>{{ claimed_count }}</strong> out of <strong>{{ max_allowed }}</strong> free plates today.</p>
-        {% if claimed_count >= max_allowed %}
+        <p><strong>Daily Limit:</strong> You can claim up to <strong>2 plates</strong> today.</p>
+        <p>You have already claimed <strong>{{ total_claimed }}</strong> plate(s). You have <strong>{{ remaining_plates }}</strong> plate(s) remaining.</p>
+        {% if remaining_plates == 0 %}
             <p class="limit-reached-message">✓ You have reached your daily limit. Thank you for using Waste Not Kitchen! Come back tomorrow for more free plates.</p>
         {% endif %}
     </div>
     
-    {% if claimed_count >= max_allowed %}
+    {% if needy_cart %}
+        <div class="needy-cart-summary">
+            <h3>Your Selection ({{ needy_cart|sum(attribute='qty') }} plates)</h3>
+            <div class="cart-items-compact">
+                {% for item in needy_cart %}
+                    {% for plate in plates %}
+                        {% if plate.reservation_id == item.reservation_id %}
+                            <div class="cart-item-compact">
+                                <span class="item-name">{{ plate.title }} x{{ item.qty }}</span>
+                                <form method="POST" action="{{ url_for('customer.remove_from_needy_cart', reservation_id=item.reservation_id) }}" style="display: inline;">
+                                    <button type="submit" class="btn-remove-small">Remove</button>
+                                </form>
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                {% endfor %}
+            </div>
+            <form method="POST" action="{{ url_for('customer.claim_selected_plates') }}">
+                <button type="submit" class="btn btn-primary btn-claim-all">Claim Selected Plates</button>
+            </form>
+        </div>
+    {% endif %}
+    
+    {% if remaining_plates == 0 %}
         <!-- Show message only, no plates -->
         <div class="no-data">
             <h3>Daily Limit Reached</h3>
             <p>You cannot claim any more plates today. Please return tomorrow to claim more free donated meals.</p>
-            <p>Your claimed plates can be picked up using the codes provided.</p>
+            <p>Your claimed plates can be picked up using the codes provided in <a href="{{ url_for('customer.order_history') }}">My History</a>.</p>
         </div>
     {% elif plates %}
-        <div class="plates-grid">
-            {% for plate in plates %}
-            <div class="plate-card">
-                <h3>{{ plate.title or 'Food Item' }}</h3>
-                <p class="restaurant-name">{{ plate.restaurant_name }}</p>
-                <p class="description">{{ plate.description }}</p>
-                <p class="price free-badge">FREE (Donated)</p>
-                <p class="quantity">Quantity: {{ plate.qty }}</p>
-                <p class="time-window">
-                    <small>Pickup: {{ plate.start_time.strftime('%m/%d %I:%M%p') }} - {{ plate.end_time.strftime('%I:%M%p') }}</small>
-                </p>
-                
-                <form method="POST" action="{{ url_for('customer.claim_free', reservation_id=plate.reservation_id) }}" class="reserve-form">
-                    <button type="submit" class="btn btn-primary">Claim Free Plate</button>
-                </form>
+        <div class="available-section">
+            <h3>Available Free Plates</h3>
+            <div class="plates-grid">
+                {% for plate in plates %}
+                <div class="plate-card">
+                    <h3>{{ plate.title or 'Food Item' }}</h3>
+                    <p class="restaurant-name">{{ plate.restaurant_name }}</p>
+                    <p class="description">{{ plate.description }}</p>
+                    <p class="price free-badge">FREE (Donated)</p>
+                    <p class="quantity">Available: {{ plate.available_qty }}</p>
+                    <p class="time-window">
+                        <small>Pickup: {{ plate.start_time.strftime('%m/%d %I:%M%p') }} - {{ plate.end_time.strftime('%I:%M%p') }}</small>
+                    </p>
+                    
+                    <form method="POST" action="{{ url_for('customer.add_to_needy_cart') }}" class="reserve-form">
+                        <input type="hidden" name="reservation_id" value="{{ plate.reservation_id }}">
+                        <div class="qty-selector">
+                            <label for="qty_{{ plate.reservation_id }}">Select Quantity:</label>
+                            <input type="number" 
+                                   name="qty" 
+                                   id="qty_{{ plate.reservation_id }}" 
+                                   value="1" 
+                                   min="1" 
+                                   max="{{ [plate.available_qty, remaining_plates]|min }}">
+                        </div>
+                        <button type="submit" class="btn btn-primary" {% if remaining_plates == 0 %}disabled{% endif %}>
+                            Add to Selection
+                        </button>
+                    </form>
+                </div>
+                {% endfor %}
             </div>
-            {% endfor %}
         </div>
     {% else %}
         <p class="no-data">No free plates available at the moment. Check back later when donors contribute!</p>
     {% endif %}
 </div>
+
+<style>
+    .info-message {
+        background-color: #e3f2fd;
+        border-left: 4px solid #2196F3;
+        padding: 15px;
+        margin-bottom: 20px;
+        border-radius: 4px;
+    }
+
+    .info-message p {
+        margin: 5px 0;
+        color: #1565c0;
+    }
+
+    .limit-reached-message {
+        color: #2e7d32;
+        font-weight: bold;
+        margin-top: 10px;
+    }
+
+    .needy-cart-summary {
+        background: white;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 25px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        border-left: 4px solid #4CAF50;
+    }
+
+    .needy-cart-summary h3 {
+        margin: 0 0 15px 0;
+        color: #333;
+    }
+
+    .cart-items-compact {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        margin-bottom: 15px;
+    }
+
+    .cart-item-compact {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px;
+        background-color: #f5f5f5;
+        border-radius: 4px;
+    }
+
+    .item-name {
+        font-weight: 600;
+        color: #333;
+    }
+
+    .btn-remove-small {
+        background-color: #f44336;
+        color: white;
+        border: none;
+        padding: 5px 12px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.85em;
+    }
+
+    .btn-remove-small:hover {
+        background-color: #d32f2f;
+    }
+
+    .btn-claim-all {
+        width: 100%;
+        padding: 12px;
+        font-size: 1.05em;
+        margin-top: 10px;
+    }
+
+    .available-section {
+        margin-top: 20px;
+    }
+
+    .available-section h3 {
+        color: #333;
+        margin-bottom: 15px;
+        padding-bottom: 10px;
+        border-bottom: 2px solid #eee;
+    }
+
+    .free-badge {
+        background-color: #4CAF50;
+        color: white;
+        padding: 5px 10px;
+        border-radius: 4px;
+        display: inline-block;
+        font-weight: bold;
+    }
+
+    .qty-selector {
+        margin: 15px 0;
+    }
+
+    .qty-selector label {
+        display: block;
+        margin-bottom: 5px;
+        color: #666;
+        font-size: 0.9em;
+    }
+
+    .qty-selector input {
+        width: 100%;
+        padding: 8px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 1em;
+    }
+
+    button:disabled {
+        background-color: #ccc;
+        cursor: not-allowed;
+        opacity: 0.6;
+    }
+
+    .no-data a {
+        color: #2196F3;
+        text-decoration: underline;
+    }
+</style>
 {% endblock %}

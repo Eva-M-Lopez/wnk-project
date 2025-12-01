@@ -1,0 +1,326 @@
+{% extends "base.html" %}
+
+{% block title %}Shopping Cart - Waste Not Kitchen{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <h2>
+        {% if session.user_type == 'donner' %}
+            My Donation Cart
+        {% else %}
+            My Shopping Cart
+        {% endif %}
+    </h2>
+    
+    {% if cart_items %}
+        <div class="cart-container">
+            <div class="cart-items">
+                {% for item in cart_items %}
+                <div class="cart-item {% if not item.available %}unavailable{% endif %}">
+                    <div class="item-info">
+                        <h3>{{ item.title or 'Food Item' }}</h3>
+                        <p class="restaurant-name">{{ item.restaurant_name }}</p>
+                        <p class="description">{{ item.description }}</p>
+                        <p class="pickup-time">
+                            <small>Pickup: {{ item.start_time.strftime('%m/%d %I:%M%p') }} - {{ item.end_time.strftime('%I:%M%p') }}</small>
+                        </p>
+                        
+                        {% if not item.available %}
+                            <p class="warning-text">⚠️ Only {{ item.quantity_available }} available (you have {{ item.cart_qty }} in cart)</p>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="item-controls">
+                        <div class="price-info">
+                            <span class="unit-price">${{ "%.2f"|format(item.price) }} each</span>
+                            <span class="subtotal">${{ "%.2f"|format(item.subtotal) }}</span>
+                        </div>
+                        
+                        <form method="POST" action="{{ url_for('customer.update_cart') }}" class="qty-form">
+                            <input type="hidden" name="plate_id" value="{{ item.plate_id }}">
+                            <div class="qty-control">
+                                <label for="qty_{{ item.plate_id }}">Qty:</label>
+                                <input type="number" name="qty" id="qty_{{ item.plate_id }}" 
+                                       value="{{ item.cart_qty }}" min="1" max="{{ item.quantity_available }}">
+                                <button type="submit" class="btn btn-small">Update</button>
+                            </div>
+                        </form>
+                        
+                        <form method="POST" action="{{ url_for('customer.remove_from_cart', plate_id=item.plate_id) }}" class="remove-form">
+                            <button type="submit" class="btn btn-danger">Remove</button>
+                        </form>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            
+            <div class="cart-summary">
+                <h3>Order Summary</h3>
+                <div class="summary-line">
+                    <span>Items:</span>
+                    <span>{{ cart_items|length }}</span>
+                </div>
+                <div class="summary-line total">
+                    <span>Total:</span>
+                    <span>${{ "%.2f"|format(total) }}</span>
+                </div>
+                
+                <div class="cart-actions">
+                    <a href="{{ url_for('customer.marketplace') }}" class="btn btn-secondary">Continue Shopping</a>
+                    <a href="{{ url_for('customer.checkout') }}" class="btn btn-primary">
+                        {% if session.user_type == 'donner' %}
+                            Proceed to Donate
+                        {% else %}
+                            Proceed to Checkout
+                        {% endif %}
+                    </a>
+                </div>
+            </div>
+        </div>
+    {% else %}
+        <div class="empty-cart">
+            <p>Your cart is empty</p>
+            <a href="{{ url_for('customer.marketplace') }}" class="btn btn-primary">Browse Marketplace</a>
+        </div>
+    {% endif %}
+</div>
+
+<style>
+    .cart-container {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 30px;
+        margin-top: 20px;
+    }
+
+    .cart-items {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .cart-item {
+        background: white;
+        border-radius: 8px;
+        padding: 20px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 20px;
+    }
+
+    .cart-item.unavailable {
+        border: 2px solid #ff9800;
+        background-color: #fff3e0;
+    }
+
+    .item-info h3 {
+        margin: 0 0 10px 0;
+        color: #333;
+    }
+
+    .restaurant-name {
+        color: #666;
+        font-style: italic;
+        margin-bottom: 8px;
+    }
+
+    .description {
+        color: #555;
+        margin-bottom: 8px;
+        font-size: 0.95em;
+    }
+
+    .pickup-time {
+        color: #777;
+        font-size: 0.9em;
+    }
+
+    .warning-text {
+        color: #e65100;
+        font-weight: bold;
+        margin-top: 10px;
+    }
+
+    .item-controls {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+        justify-content: space-between;
+    }
+
+    .price-info {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+    }
+
+    .unit-price {
+        font-size: 0.9em;
+        color: #666;
+    }
+
+    .subtotal {
+        font-size: 1.3em;
+        font-weight: bold;
+        color: #4CAF50;
+    }
+
+    .qty-form {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+    }
+
+    .qty-control {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .qty-control label {
+        font-size: 0.9em;
+        color: #666;
+    }
+
+    .qty-control input {
+        width: 60px;
+        padding: 5px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+    }
+
+    .btn-small {
+        padding: 5px 12px;
+        font-size: 0.85em;
+    }
+
+    .remove-form {
+        margin-top: auto;
+    }
+
+    .btn-danger {
+        background-color: #f44336;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.9em;
+    }
+
+    .btn-danger:hover {
+        background-color: #d32f2f;
+    }
+
+    .cart-summary {
+        background: white;
+        border-radius: 8px;
+        padding: 25px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        height: fit-content;
+        position: sticky;
+        top: 20px;
+    }
+
+    .cart-summary h3 {
+        margin: 0 0 20px 0;
+        color: #333;
+        border-bottom: 2px solid #eee;
+        padding-bottom: 10px;
+    }
+
+    .summary-line {
+        display: flex;
+        justify-content: space-between;
+        padding: 10px 0;
+        color: #666;
+    }
+
+    .summary-line.total {
+        border-top: 2px solid #eee;
+        margin-top: 10px;
+        padding-top: 15px;
+        font-size: 1.3em;
+        font-weight: bold;
+        color: #333;
+    }
+
+    .summary-line.total span:last-child {
+        color: #4CAF50;
+    }
+
+    .cart-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        margin-top: 25px;
+    }
+
+    .btn-secondary {
+        background-color: #757575;
+        color: white;
+        text-decoration: none;
+        padding: 12px;
+        border-radius: 4px;
+        text-align: center;
+        transition: background-color 0.3s;
+    }
+
+    .btn-secondary:hover {
+        background-color: #616161;
+    }
+
+    .btn-primary {
+        background-color: #4CAF50;
+        color: white;
+        text-decoration: none;
+        padding: 12px;
+        border-radius: 4px;
+        text-align: center;
+        font-weight: bold;
+        transition: background-color 0.3s;
+    }
+
+    .btn-primary:hover {
+        background-color: #45a049;
+    }
+
+    .empty-cart {
+        text-align: center;
+        padding: 60px 20px;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .empty-cart p {
+        font-size: 1.2em;
+        color: #666;
+        margin-bottom: 20px;
+    }
+
+    @media (max-width: 768px) {
+        .cart-container {
+            grid-template-columns: 1fr;
+        }
+
+        .cart-item {
+            grid-template-columns: 1fr;
+        }
+
+        .item-controls {
+            flex-direction: row;
+            flex-wrap: wrap;
+        }
+
+        .price-info {
+            align-items: flex-start;
+        }
+
+        .cart-summary {
+            position: static;
+        }
+    }
+</style>
+{% endblock %}

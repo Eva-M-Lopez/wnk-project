@@ -19,8 +19,14 @@
                         <li><a href="{{ url_for('admin.dashboard') }}">Admin</a></li>
                     {% elif session.user_type == 'needy' %}
                         <li><a href="{{ url_for('customer.free_plates') }}">Free Plates</a></li>
-                    {% else %}
+                        <li><a href="{{ url_for('customer.order_history') }}">My History</a></li>
+                    {% elif session.user_type == 'customer' %}
                         <li><a href="{{ url_for('customer.marketplace') }}">Marketplace</a></li>
+                        <li><a href="{{ url_for('customer.cart') }}">Cart ({{ session.get('cart_count', 0) }})</a></li>
+                        <li><a href="{{ url_for('customer.order_history') }}">My Orders</a></li>
+                    {% elif session.user_type == 'donner' %}
+                        <li><a href="{{ url_for('customer.marketplace') }}">Marketplace</a></li>
+                        <li><a href="{{ url_for('customer.cart') }}">Cart ({{ session.get('cart_count', 0) }})</a></li>
                     {% endif %}
                     <li><a href="{{ url_for('auth.profile') }}">Profile</a></li>
                     <li><a href="{{ url_for('auth.logout') }}">Logout</a></li>

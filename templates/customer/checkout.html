@@ -3,34 +3,323 @@
 {% block title %}Checkout - Waste Not Kitchen{% endblock %}
 
 {% block content %}
-<div class="form-container">
-    <h2>Checkout</h2>
+<div class="dashboard-container">
+    <h2>
+        {% if session.user_type == 'donner' %}
+            Confirm Your Donation
+        {% else %}
+            Checkout
+        {% endif %}
+    </h2>
     
-    {% if reservation %}
-        <div class="checkout-details">
-            <h3>{{ reservation.title }}</h3>
-            <p>Quantity: {{ reservation.qty }}</p>
-            <p>Price per plate: ${{ "%.2f"|format(reservation.price) }}</p>
-            <p class="total">Total: ${{ "%.2f"|format(reservation.price * reservation.qty) }}</p>
-        </div>
-        
-        <form method="POST" action="{{ url_for('customer.confirm') }}">
-            <input type="hidden" name="reservation_id" value="{{ reservation.reservation_id }}">
-            
-            <div class="checkout-actions">
-                <button type="submit" class="btn btn-primary">
-                    {% if session.user_type == 'donner' %}
-                        Confirm Donation
-                    {% else %}
-                        Confirm Order
+    {% if cart_items %}
+        <div class="checkout-container">
+            <div class="checkout-items">
+                <h3>Order Items</h3>
+                {% for item in cart_items %}
+                <div class="checkout-item {% if not item.available %}unavailable{% endif %}">
+                    <div class="item-details">
+                        <h4>{{ item.title or 'Food Item' }}</h4>
+                        <p class="restaurant">{{ item.restaurant_name }}</p>
+                        <p class="pickup-time">
+                            <small>Pickup: {{ item.start_time.strftime('%m/%d %I:%M%p') }} - {{ item.end_time.strftime('%I:%M%p') }}</small>
+                        </p>
+                    </div>
+                    <div class="item-qty">
+                        <span>Qty: {{ item.cart_qty }}</span>
+                    </div>
+                    <div class="item-price">
+                        <span>${{ "%.2f"|format(item.subtotal) }}</span>
+                    </div>
+                    
+                    {% if not item.available %}
+                        <div class="item-warning">
+                            <p>⚠️ Not enough available (only {{ item.quantity_available }} left)</p>
+                        </div>
                     {% endif %}
-                </button>
-                <a href="{{ url_for('customer.marketplace') }}" class="btn btn-secondary">Cancel</a>
+                </div>
+                {% endfor %}
             </div>
-        </form>
+            
+            <div class="checkout-summary">
+                <h3>Order Summary</h3>
+                <div class="summary-details">
+                    <div class="summary-line">
+                        <span>Total Items:</span>
+                        <span>{{ cart_items|length }}</span>
+                    </div>
+                    <div class="summary-line total">
+                        <span>Total Amount:</span>
+                        <span>${{ "%.2f"|format(total) }}</span>
+                    </div>
+                </div>
+                
+                {% set has_unavailable = cart_items|selectattr('available', 'equalto', false)|list|length > 0 %}
+                
+                {% if has_unavailable %}
+                    <div class="error-message">
+                        <p>⚠️ Some items are no longer available in the requested quantity.</p>
+                        <p>Please update your cart before proceeding.</p>
+                    </div>
+                    <div class="checkout-actions">
+                        <a href="{{ url_for('customer.cart') }}" class="btn btn-warning">Update Cart</a>
+                        <a href="{{ url_for('customer.marketplace') }}" class="btn btn-secondary">Continue Shopping</a>
+                    </div>
+                {% else %}
+                    <form method="POST" action="{{ url_for('customer.confirm_order') }}" class="confirm-form">
+                        <div class="checkout-actions">
+                            <button type="submit" class="btn btn-primary">
+                                {% if session.user_type == 'donner' %}
+                                    Confirm Donation (${{ "%.2f"|format(total) }})
+                                {% else %}
+                                    Confirm Order (${{ "%.2f"|format(total) }})
+                                {% endif %}
+                            </button>
+                            <a href="{{ url_for('customer.cart') }}" class="btn btn-secondary">Back to Cart</a>
+                        </div>
+                    </form>
+                    
+                    {% if session.user_type == 'donner' %}
+                        <div class="donation-note">
+                            <p>💝 Thank you for your generosity! Your donation will help those in need.</p>
+                        </div>
+                    {% endif %}
+                {% endif %}
+            </div>
+        </div>
     {% else %}
-        <p>No reservation found.</p>
-        <a href="{{ url_for('customer.marketplace') }}" class="btn btn-primary">Back to Marketplace</a>
+        <div class="empty-checkout">
+            <p>Your cart is empty.</p>
+            <a href="{{ url_for('customer.marketplace') }}" class="btn btn-primary">Browse Marketplace</a>
+        </div>
     {% endif %}
 </div>
+
+<style>
+    .checkout-container {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 30px;
+        margin-top: 20px;
+    }
+
+    .checkout-items {
+        background: white;
+        border-radius: 8px;
+        padding: 25px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .checkout-items h3 {
+        margin: 0 0 20px 0;
+        color: #333;
+        border-bottom: 2px solid #eee;
+        padding-bottom: 10px;
+    }
+
+    .checkout-item {
+        display: grid;
+        grid-template-columns: 2fr auto auto;
+        gap: 20px;
+        padding: 15px;
+        border-bottom: 1px solid #eee;
+        align-items: center;
+    }
+
+    .checkout-item:last-child {
+        border-bottom: none;
+    }
+
+    .checkout-item.unavailable {
+        background-color: #fff3e0;
+        border: 2px solid #ff9800;
+        border-radius: 4px;
+        grid-template-columns: 1fr;
+    }
+
+    .checkout-item.unavailable .item-details,
+    .checkout-item.unavailable .item-qty,
+    .checkout-item.unavailable .item-price {
+        display: inline;
+        margin-right: 15px;
+    }
+
+    .item-details h4 {
+        margin: 0 0 5px 0;
+        color: #333;
+    }
+
+    .item-details .restaurant {
+        color: #666;
+        font-style: italic;
+        margin: 5px 0;
+        font-size: 0.9em;
+    }
+
+    .item-details .pickup-time {
+        color: #777;
+        font-size: 0.85em;
+    }
+
+    .item-qty {
+        font-weight: 600;
+        color: #555;
+    }
+
+    .item-price {
+        font-size: 1.1em;
+        font-weight: bold;
+        color: #4CAF50;
+    }
+
+    .item-warning {
+        grid-column: 1 / -1;
+        color: #e65100;
+        font-weight: bold;
+        margin-top: 10px;
+    }
+
+    .checkout-summary {
+        background: white;
+        border-radius: 8px;
+        padding: 25px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        height: fit-content;
+        position: sticky;
+        top: 20px;
+    }
+
+    .checkout-summary h3 {
+        margin: 0 0 20px 0;
+        color: #333;
+        border-bottom: 2px solid #eee;
+        padding-bottom: 10px;
+    }
+
+    .summary-details {
+        margin-bottom: 25px;
+    }
+
+    .summary-line {
+        display: flex;
+        justify-content: space-between;
+        padding: 10px 0;
+        color: #666;
+    }
+
+    .summary-line.total {
+        border-top: 2px solid #eee;
+        margin-top: 10px;
+        padding-top: 15px;
+        font-size: 1.4em;
+        font-weight: bold;
+        color: #333;
+    }
+
+    .summary-line.total span:last-child {
+        color: #4CAF50;
+    }
+
+    .error-message {
+        background-color: #fff3e0;
+        border: 2px solid #ff9800;
+        border-radius: 4px;
+        padding: 15px;
+        margin-bottom: 20px;
+    }
+
+    .error-message p {
+        margin: 5px 0;
+        color: #e65100;
+        font-weight: 600;
+    }
+
+    .checkout-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .btn-primary, .btn-secondary, .btn-warning {
+        text-decoration: none;
+        padding: 14px;
+        border-radius: 4px;
+        text-align: center;
+        font-weight: bold;
+        border: none;
+        cursor: pointer;
+        font-size: 1em;
+        transition: background-color 0.3s;
+    }
+
+    .btn-primary {
+        background-color: #4CAF50;
+        color: white;
+    }
+
+    .btn-primary:hover {
+        background-color: #45a049;
+    }
+
+    .btn-secondary {
+        background-color: #757575;
+        color: white;
+    }
+
+    .btn-secondary:hover {
+        background-color: #616161;
+    }
+
+    .btn-warning {
+        background-color: #ff9800;
+        color: white;
+    }
+
+    .btn-warning:hover {
+        background-color: #f57c00;
+    }
+
+    .donation-note {
+        background-color: #e8f5e9;
+        border-left: 4px solid #4CAF50;
+        padding: 15px;
+        margin-top: 20px;
+        border-radius: 4px;
+    }
+
+    .donation-note p {
+        margin: 0;
+        color: #2e7d32;
+        font-size: 0.95em;
+    }
+
+    .empty-checkout {
+        text-align: center;
+        padding: 60px 20px;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .empty-checkout p {
+        font-size: 1.2em;
+        color: #666;
+        margin-bottom: 20px;
+    }
+
+    @media (max-width: 768px) {
+        .checkout-container {
+            grid-template-columns: 1fr;
+        }
+
+        .checkout-item {
+            grid-template-columns: 1fr;
+            gap: 10px;
+        }
+
+        .checkout-summary {
+            position: static;
+        }
+    }
+</style>
 {% endblock %}

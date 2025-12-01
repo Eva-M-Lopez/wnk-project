@@ -19,7 +19,7 @@
                     <small>Pickup: {{ plate.start_time.strftime('%m/%d %I:%M%p') }} - {{ plate.end_time.strftime('%I:%M%p') }}</small>
                 </p>
                 
-                <form method="POST" action="{{ url_for('customer.reserve') }}" class="reserve-form">
+                <form method="POST" action="{{ url_for('customer.add_to_cart') }}" class="reserve-form">
                     <input type="hidden" name="plate_id" value="{{ plate.plate_id }}">
                     <div class="qty-selector">
                         <label for="qty_{{ plate.plate_id }}">Quantity:</label>
@@ -27,9 +27,9 @@
                     </div>
                     <button type="submit" class="btn btn-primary">
                         {% if session.user_type == 'donner' %}
-                            Donate
+                            Add to Cart (Donate)
                         {% else %}
-                            Reserve
+                            Add to Cart
                         {% endif %}
                     </button>
                 </form>
